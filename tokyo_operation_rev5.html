@@ -1,0 +1,142 @@
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+
+<html lang="ja">
+
+<head>
+  <link rel="STYLESHEET" href="../css/swa_def.css" type="text/css">
+  <link rel="INDEX" href="../index.html">
+  <link rev="MADE" href="mailto:swa@t3.rim.or.jp">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <meta name="Author" content="SWA / KASAI Takaya">
+  <meta name="Keywords" content="通学,SWA">
+  <title>Try XMLHttpRequest</title>
+</head>
+
+<body>
+<h1>XMLHttpRequestによる運行情報取得</h1>
+<div id="demo">
+<p>
+情報提供路線： JR東日本全路線、りんかい線、東京地下鉄全線、都営地下鉄全線、都電荒川線、日暮里舎人ライナー、東急電鉄全線、西武鉄道全線、京成電鉄全線、京浜急行電鉄全線、小田急電鉄全線、京王電鉄全線
+</p>
+<p id="demo2">
+最新の情報に注意してください。
+</p>
+<table id="statusTable">
+<tr><th>路線</th><th>時刻</th><th>状況</th><th></th><th></th><th>詳細</th></tr>
+</table>
+</div>
+
+
+
+
+<HR>
+<div class="FootLink">
+<A accesskey="S" href="../index.html"><SPAN class="NaviChar">▲</SPAN>
+　<SPAN class="ak">S</SPAN>tart（RIS の Web ページ　トップ）</A>
+</DIV>
+
+
+<hr>
+<address>
+Written by <strong>RIS / Taisei Konishi</strong>
+ （<A href="../misc/mail.html">RIS へメールを送る</A>）<br>
+最終更新： 2019年 03月 24日<br>
+簡易包装にご協力ください。
+</address>
+</body>
+
+
+<script language="javascript" src="../script/opdt_function.js"></script>
+<script>
+
+const url1 = "https://api-tokyochallenge.odpt.org/api/v4/odpt:TrainInformation?acl%3AconsumerKey=e9c17485e8696c0fed669cedd2ec9b1779eebabeb21d1b4b51269a31d868b1cb";
+let data;
+
+var xhr = new XMLHttpRequest();
+xhr.open('GET',url1,false);
+xhr.onreadystatechange = function(){
+	//本番用
+	if(this.readyState === 4 && this.status === 200){
+		//console.log('Status:', this.status);
+		//console.log('Headers:', this.getAllResponseHeaders());
+		//console.log('Body:', this.responseText);
+		data = JSON.parse(this.responseText);
+		console.log(data);
+ 
+	}
+	//
+	// 通信失敗用
+    if (this.readyState === 4 && this.status === 0){
+		document.getElementById("date").innerHTML = "通信失敗のため表示できません";
+		document.getElementById("chiyoda").innerHTML = "";
+    }
+    
+}
+xhr.send(null);
+let jsonSize = data.length;
+//console.log(jsonSize);
+let opdt_line;
+let lineStatus;
+let row;
+let count = 0;
+for (let i = 0; i < jsonSize; i++) {
+	count = 0;
+	if (data[i]["odpt:trainInformationStatus"] == "None" || data[i]["odpt:trainInformationStatus"] == undefined){
+		//console.log(lineStatus);
+		/* 
+		if(data[i]["odpt:railway"] != undefined) {
+			row = "<tr><td>" + odpt_line_to_japanese(data[i]["odpt:railway"]) + "</td><td>" + data[i]["dc:date"] + "</td><td></td><td></td><td></td><td>" + data[i]["odpt:trainInformationText"]["ja"] + "</td></tr>";
+		} else if(data[i]["odpt:operator"] != undefined) {
+			row = "<tr><td>" + opdt_operator_ja(data[i]["odpt:operator"]) + "</td><td>" + data[i]["dc:date"] + "</td><td></td><td></td><td></td><td>" + data[i]["odpt:trainInformationText"]["ja"] + "</td></tr>";
+		}
+		*/
+		continue;
+	} else {
+		if(data[i]["odpt:railway"] != undefined) {
+			//lineStatus = data[i]["odpt:trainInformationText"]["ja"];
+			console.log(lineStatus);
+			//row = "<tr><td>" + odpt_line_to_japanese(data[i]["odpt:railway"]) + "</td><td>" + data[i]["dc:date"] + "</td><td>" + data[i]["odpt:trainInformationStatus"]["ja"]  + "</td><td>" + data[i]["odpt:trainInformationLine"]["ja"] + "</td><td>" + data[i]["odpt:trainInformationCause"]["ja"] + "</td><td>" + data[i]["odpt:trainInformationText"]["ja"] + "</td></tr>";
+			row = "<tr><td>" + odpt_line_to_japanese(data[i]["odpt:railway"]) + "</td><td>" + data[i]["dc:date"] + "</td><td>" + data[i]["odpt:trainInformationStatus"]["ja"]  + "</td>";
+			//['ja']がない時点で判断しないとエラーが出る
+			count += data[i]["odpt:trainInformationLine"] == undefined ? 1 : 0;
+			count += data[i]["odpt:trainInformationCause"] == undefined ? 1 : 0;
+			
+			//各会社でフォーマットが違うのを調整してる
+			if (count == 2) {
+				row += "<td colspan=3>" + data[i]["odpt:trainInformationText"]["ja"] + "</td>"
+			} else if (count == 1 && data[i]["odpt:trainInformationLine"] == undefined) {
+				row += "<td colspan=2>" + data[i]["odpt:trainInformationCause"]+ "</td>" + data[i]["odpt:trainInformationText"]["ja"] + "</td>"
+			} else if (count == 1 && data[i]["odpt:trainInformationCause"] == undefined) {
+				row += "<td colspan=2>" + data[i]["odpt:trainInformationLine"]+ "</td>" + data[i]["odpt:trainInformationText"]["ja"] + "</td>"
+			} else {
+			row += "<td>" + data[i]["odpt:trainInformationLine"]["ja"] + "</td><td>" + data[i]["odpt:trainInformationCause"]["ja"] + "</td><td>" + data[i]["odpt:trainInformationText"]["ja"] + "</td></tr>";
+			}
+			
+		} else if(data[i]["odpt:operator"] != undefined) {
+			row = "<tr><td>" + opdt_operator_ja(data[i]["odpt:operator"]) + "</td><td>" + data[i]["dc:date"] + "</td><td>" + data[i]["odpt:trainInformationStatus"]["ja"]  + "</td>";
+			//['ja']がない時点で判断しないとエラーが出る
+			count += data[i]["odpt:trainInformationLine"] == undefined ? 1 : 0;
+			count += data[i]["odpt:trainInformationCause"] == undefined ? 1 : 0;
+			
+			//各会社でフォーマットが違うのを調整してる
+			if (count == 2) {
+				row += "<td colspan=3>" + data[i]["odpt:trainInformationText"]["ja"] + "</td>"
+			} else if (count == 1 && data[i]["odpt:trainInformationLine"] == undefined) {
+				row += "<td colspan=2>" + data[i]["odpt:trainInformationCause"]+ "</td>" + data[i]["odpt:trainInformationText"]["ja"] + "</td>"
+			} else if (count == 1 && data[i]["odpt:trainInformationCause"] == undefined) {
+				row += "<td colspan=2>" + data[i]["odpt:trainInformationLine"]+ "</td>" + data[i]["odpt:trainInformationText"]["ja"] + "</td>"
+			} else {
+			row += "<td>" + data[i]["odpt:trainInformationLine"]["ja"] + "</td><td>" + data[i]["odpt:trainInformationCause"]["ja"] + "</td><td>" + data[i]["odpt:trainInformationText"]["ja"] + "</td></tr>";
+			}
+		}
+	}
+	console.log(row);
+	document.getElementById("statusTable").insertAdjacentHTML("beforeend", row);
+
+}
+
+</script>
+
+</html>
