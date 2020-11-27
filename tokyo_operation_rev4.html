@@ -1,0 +1,205 @@
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+
+<html lang="ja">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <link rel="STYLESHEET" href="../css/swa_def.css" type="text/css">
+  <link rel="INDEX" href="../index.html">
+
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <meta name="Author" content="RIS / Taisei Konishi">
+  <meta http-equiv="Content-Script-Type" content="text/javascript">
+  
+  <title>東京圏鉄道運行情報</title> 
+</head>
+
+<body>
+<h1>公共交通オープンデータによる東京圏鉄道運行情報</h1>
+<p>
+※本ページの情報に基づくユーザーの判断により発生した損害に対して、RISは一切の責任を負いかねますので、あらかじめご了承下さい。
+</p>
+<H2>
+Status updates (including Tobu Railway)
+</H2>
+
+<div id="demo">
+<p>
+情報提供路線： JR東日本全路線、りんかい線、東京地下鉄全線、都営地下鉄全線、都電荒川線、日暮里舎人ライナー、東急電鉄全線、西武鉄道全線、京成電鉄全線、京浜急行電鉄全線、小田急電鉄全線、京王電鉄全線、東武鉄道全線（2020年３月から）
+</p>
+
+<!-- アクセス日時用 -->
+<p id="demo2">
+</p>
+
+<div id="demo3">
+
+
+<table id="updatesTable">
+<tr><th style="min-width: 128px;">路線</th><th style="min-width: 104px;">時刻</th><th style="min-width: 96px;">状況</th><th></th><th></th><th>詳細</th></tr>
+</table>
+
+
+
+</div>
+</div>
+
+<HR>
+<div class="FootLink">
+<A accesskey="R" href="../rail/tokyo_zaisen_index.html"><SPAN class="NaviChar">▲</SPAN>
+　<SPAN class="ak">R</SPAN>unning Status（在線情報の路線一覧ページ）</A>
+<br>	
+<A accesskey="S" href="../index.html"><SPAN class="NaviChar">▲</SPAN>
+　<SPAN class="ak">S</SPAN>tart（RIS の Web ページ　トップ）</A>
+</DIV>
+
+
+<hr>
+<address>
+Written by <strong>RIS / Taisei Konishi</strong>
+ （<A href="../misc/mail.html">RIS へメールを送る</A>）<br>
+最終更新： 2020年 06月 20日<br>
+簡易包装にご協力ください。
+</address>
+</body>
+
+
+<script language="javascript" src="../script/opdt_function.js"></script>
+<script language="javascript" src="../script/accessTime.js"></script>
+<script language="javascript">
+
+//アクセス日時用
+document.getElementById("demo2").innerHTML = "アクセス日時：" + getTimefromPHP();
+
+const url1 = "../script/tokyo1.php";
+let data;
+
+var xhr = new XMLHttpRequest();
+xhr.open('GET',url1, false);
+xhr.onreadystatechange = function(){
+	//本番用
+	if(this.status === 200){
+		//console.log('Status:', this.status);
+		//console.log('Headers:', this.getAllResponseHeaders());
+		//console.log('Body:', this.responseText);
+		data = JSON.parse(this.responseText);
+		console.log(data);
+ 
+	}
+	//
+	// 通信失敗用
+    else {
+		document.getElementById("demo3").innerHTML = "通信失敗のため表示できません";
+    }
+    
+}
+xhr.send(null);
+
+let jsonSize = data.length;
+//console.log(jsonSize);
+let opdt_line;
+let lineStatus;
+let row;
+let count;
+let goodServiceonAllLines = true;
+let endLine;
+
+//phpで受け取ったjsonからデータを取り出す
+for (let i = 0; i < jsonSize; i++) {
+	count = 0;
+	if (data[i]["odpt:trainInformationStatus"] == "None" || data[i]["odpt:trainInformationStatus"] == undefined){
+		//console.log(lineStatus);
+		/*
+		if(data[i]["odpt:railway"] != undefined) {
+			currentLine = odpt_line_to_japanese(data[i]["odpt:railway"]);
+			
+		} else if(data[i]["odpt:operator"] != undefined) {
+			currentLine = opdt_operator_ja(data[i]["odpt:operator"]);
+		}
+	row += "<tr><td>" + currentLine + "</td><td>" + data[i]["dc:date"] + "</td><td></td><td></td><td></td><td>" + data[i]["odpt:trainInformationText"]["ja"] + "</td></tr>";
+	row += LinktoHPandTwi(currentLine);
+		
+		
+	console.log(row);
+	document.getElementById("statusTable").insertAdjacentHTML("beforeend", row);
+		*/
+		continue;
+	} else {
+		goodServiceonAllLines = false;
+		let currentLine;
+		if(data[i]["odpt:railway"] != undefined) {
+			//lineStatus = data[i]["odpt:trainInformationText"]["ja"];
+			console.log(lineStatus);
+			
+			//書き換えた
+			currentLine = odpt_line_to_japanese(data[i]["odpt:railway"]);
+		} else if(data[i]["odpt:operator"] != undefined) {
+			//書き換えた
+			currentLine = opdt_operator_ja(data[i]["odpt:operator"]);
+		}
+			
+		//row = "<tr><td>" + odpt_line_to_japanese(data[i]["odpt:railway"]) + "</td><td>" + data[i]["dc:date"] + "</td><td>" + data[i]["odpt:trainInformationStatus"]["ja"]  + "</td><td>" + data[i]["odpt:trainInformationLine"]["ja"] + "</td><td>" + data[i]["odpt:trainInformationCause"]["ja"] + "</td><td>" + data[i]["odpt:trainInformationText"]["ja"] + "</td></tr>";
+		row = "<tr><td>" + currentLine + "</td><td>" + time(data[i]["dc:date"]) + "</td><td>" + data[i]["odpt:trainInformationStatus"]["ja"]  + "</td>";
+		
+		//['ja']がない時点で判断しないとエラーが出る
+		count += data[i]["odpt:trainInformationLine"] == undefined ? 1 : 0;
+		count += data[i]["odpt:trainInformationCause"] == undefined ? 1 : 0;
+		
+		//各会社でフォーマットが違うのを調整してる
+		//rev3でodpt:trainInformationCauseを非表示
+		if (count == 2) {
+			row += "<td colspan=3>" + data[i]["odpt:trainInformationText"]["ja"];
+		} else if (count == 1 && data[i]["odpt:trainInformationLine"] == undefined) {
+			//rev3で変更；　count=2のときと一緒
+			row += "<td colspan=3>" + data[i]["odpt:trainInformationText"]["ja"];
+		} else if (count == 1 && data[i]["odpt:trainInformationCause"] == undefined) {
+			row += "<td colspan=2>" + data[i]["odpt:trainInformationLine"]+ "</td><td>" + data[i]["odpt:trainInformationText"]["ja"];
+		} else {
+		row += "<td>" + data[i]["odpt:trainInformationLine"]["ja"] + "</td><td>" + data[i]["odpt:trainInformationCause"]["ja"] + "</td><td>" + data[i]["odpt:trainInformationText"]["ja"];
+		}
+		row += "<br>" + LinktoHPandTwi(currentLine) + "</td></tr>";
+	}
+	//row = '<table id="statusTable"><tr><th style="width:10%;">路線</th><th style="width:10%;">時刻</th><th style="width:10%;">状況</th><th></th><th></th><th>詳細</th></tr>' + row;
+	console.log(row);
+	document.getElementById("updatesTable").insertAdjacentHTML("beforeend", row);
+
+}
+
+//最終行
+if (goodServiceonAllLines) {
+	endLine = "<p><strong>good service</strong> on all lines</p>";
+	document.getElementById("demo3").innerHTML = endLine;
+} else {
+	endLine = "<tr><td colspan=6><strong>good service</strong> on all other lines</td></tr>";
+	document.getElementById("updatesTable").insertAdjacentHTML("beforeend", endLine);
+}
+
+
+function time(str){
+	//const pattern = /[0-9]{4}-[0-9]{2}-[0-9]{2}T-[0-9]{2}:-[0-9]{2}:-[0-9]{2}\+09:00/;
+	const r = /[0-9]{2}:[0-9]{2}:[0-9]{2}/g;
+	let arr = [];
+	let j;
+	//console.log(typeof(str));
+	
+	while((arr = r.exec(str)) != null){
+		j = arr[0] + "現在";
+	}
+	return j;
+
+}
+
+function LinktoHPandTwi(currentLine){
+	let j;
+	//HP
+	j = "<a href='" + opdt_officialHP(currentLine) + "'>公式HP</a>　<a href='" + opdt_officialTwi(currentLine) + "'>公式Twitter</a>";
+	
+	console.log(j);
+	return j;
+}
+
+
+</script> 
+
+</html>
